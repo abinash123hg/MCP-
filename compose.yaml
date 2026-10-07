@@ -11,7 +11,9 @@ services:
       APP_PORT: 8000
       BROWSER_HEADLESS: "true"
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
+      VISION_MODEL: ${VISION_MODEL:-gemma3:4b}
+      MAX_AGENT_STEPS: ${MAX_AGENT_STEPS:-10}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
