@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from typing import Any
 from playwright.async_api import async_playwright, BrowserContext, Page
@@ -39,20 +40,54 @@ class BrowserService:
         await page.goto(url, wait_until="domcontentloaded")
         return await self.snapshot()
 
-    async def snapshot(self) -> dict[str, Any]:
+    async def _describe_elements(self, page: Page) -> list[dict[str, str]]:
+        return await page.locator("button, a, input, textarea, select").evaluate_all(
+            """els => els.slice(0, 80).map(e => ({
+                tag: e.tagName.toLowerCase(),
+                text: (e.innerText || e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.value || '').trim().slice(0,160),
+                selector: e.id ? '#' + CSS.escape(e.id) :
+                    e.getAttribute('name') ? e.tagName.toLowerCase() + '[name="' + CSS.escape(e.getAttribute('name')) + '"]' :
+                    e.tagName.toLowerCase() + ':nth-of-type(' + (Array.from(e.parentElement.children).indexOf(e)+1) + ')'
+            }))"""
+        )
+
+    async def snapshot(self, include_screenshot: bool = False) -> dict[str, Any]:
         page = await self.page()
-        title = await page.title()
-        text = (await page.locator("body").inner_text())[:12000]
-        return {"url": page.url, "title": title, "text": text}
+        result: dict[str, Any] = {
+            "url": page.url,
+            "title": await page.title(),
+            "text": (await page.locator("body").inner_text())[:12000],
+            "elements": await self._describe_elements(page),
+        }
+        if include_screenshot:
+            result["screenshot_base64"] = await self.screenshot_base64()
+        return result
+
+    async def screenshot_base64(self) -> str:
+        page = await self.page()
+        data = await page.screenshot(type="jpeg", quality=55)
+        return base64.b64encode(data).decode("ascii")
+
+    def _locator(self, page: Page, selector: str):
+        if selector.startswith("text="):
+            return page.get_by_text(selector[5:], exact=False).first
+        if selector.startswith("role="):
+            role, _, name = selector[5:].partition("|")
+            return page.get_by_role(role, name=name or None).first
+        if selector.startswith("placeholder="):
+            return page.get_by_placeholder(selector[12:], exact=False).first
+        if selector.startswith("label="):
+            return page.get_by_label(selector[6:], exact=False).first
+        return page.locator(selector).first
 
     async def click(self, selector: str) -> dict[str, Any]:
         page = await self.page()
-        await page.locator(selector).first.click()
+        await self._locator(page, selector).click()
         return await self.snapshot()
 
     async def fill(self, selector: str, value: str) -> dict[str, Any]:
         page = await self.page()
-        await page.locator(selector).first.fill(value)
+        await self._locator(page, selector).fill(value)
         return await self.snapshot()
 
     async def close(self) -> None:
