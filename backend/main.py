@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import base64
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl
 from backend.mcp_server import browser, mcp, shutdown_browser
+from backend.config import get_settings
 from backend.services.ollama import chat as ollama_chat
 from backend.services.agent import plan_and_execute
 from backend.utils.audit import record
@@ -18,7 +20,7 @@ async def lifespan(app: FastAPI):
         yield
     await shutdown_browser()
 
-app = FastAPI(title="MCP WebPilot", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="MCP WebPilot", version="2.0.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 class OpenRequest(BaseModel):
@@ -43,12 +45,23 @@ async def index():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "mcp-webpilot", "mcp_endpoint": "/mcp"}
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "service": "mcp-webpilot",
+        "mcp_endpoint": "/mcp",
+        "model": settings.ollama_model,
+        "vision_model": settings.vision_model,
+    }
 
 @app.get("/api/status")
 async def status():
     page = await browser.page()
-    return {"url": page.url, "title": await page.title(), "mcp_endpoint": "/mcp"}
+    return {
+        "url": page.url,
+        "title": await page.title(),
+        "mcp_endpoint": "/mcp",
+    }
 
 @app.post("/api/open")
 async def open_page(request: OpenRequest):
@@ -60,6 +73,14 @@ async def open_page(request: OpenRequest):
 @app.get("/api/snapshot")
 async def snapshot():
     return await browser.snapshot()
+
+@app.get("/api/screenshot")
+async def screenshot():
+    try:
+        data = base64.b64decode(await browser.screenshot_base64())
+        return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 @app.post("/api/click")
 async def click(request: SelectorRequest):
