@@ -1,52 +1,76 @@
 # MCP WebPilot
 
-**B.Tech Final-Year Project — MCP-powered Safe Browser Automation Agent**
+**B.Tech Final-Year Project — Local Multimodal MCP Browser Agent**
 
-MCP WebPilot connects a local AI agent to browser automation through the Model Context Protocol (MCP). It can open websites, inspect pages, click, fill forms, and prepare checkout workflows while keeping irreversible actions behind an explicit human approval boundary.
+MCP WebPilot connects a local multimodal Ollama model to browser automation through the Model Context Protocol (MCP). The agent observes the current webpage using both structured DOM information and a browser screenshot, chooses one safe action, executes it through Playwright, and repeats until the task is complete or a safety boundary is reached.
 
 ## Architecture
 
 ```
-Browser UI
-   │ REST API
-   ▼
-FastAPI Backend ───── Ollama (optional local LLM)
-   │
-   ├── MCPServer
-   │       │
-   │       ▼
-   │   BrowserService
-   │       │
-   │       ▼
-   │    Playwright → Chromium
-   │
-   └── Safety / audit log
+User
+ │
+ ▼
+Frontend
+ │
+ ▼
+FastAPI Agent Loop
+ │
+ ├── Ollama (Gemma 3 4B)
+ │      ├── text reasoning
+ │      └── image understanding
+ │
+ ├── Safety / Audit
+ │
+ ▼
+MCP Server
+ │
+ ▼
+Playwright
+ │
+ ▼
+Chromium
+ ├── DOM/accessibility state
+ └── screenshot
+       │
+       └──────► next agent decision
 ```
 
 ## Features
 
-- MCP server with browser tools
-- Playwright Chromium automation
+- MCP Streamable HTTP server
 - FastAPI REST API
-- Optional Ollama local-model integration
+- Playwright Chromium automation
+- Local Ollama multimodal model
+- Iterative observe → decide → act → observe loop
+- Screenshot-aware agent decisions
+- DOM element inventory and robust locator fallbacks
 - Persistent browser profile
-- Safety gate for checkout/order/payment actions
-- Current-page snapshot
-- Audit logging
+- Safety gate and audit log
+- Human-controlled boundary for irreversible workflows
+- Live browser screenshot in the UI
 - Docker + Compose
 - Lightweight vanilla frontend
-- Pytest tests and GitHub Actions CI
+- Pytest + GitHub Actions
 
-## Storage target
+## Ollama model
 
-The repository contains no browser binary, model, dataset, virtual environment, or `node_modules`. Docker downloads Chromium during image build. Ollama models remain outside the repository.
+The default model is **`gemma3:4b`** for both text and image input. Using one multimodal model avoids downloading a separate vision model.
+
+```bash
+ollama pull gemma3:4b
+ollama run gemma3:4b
+```
+
+The model remains outside the Git repository.
 
 ## Run locally
 
 ```bash
 python -m venv .venv
+
 # Windows
-.venv\Scripts\activate
+.venv\\Scripts\\activate
+
 # macOS/Linux
 # source .venv/bin/activate
 
@@ -65,28 +89,50 @@ docker compose up --build
 
 Open `http://localhost:8000`.
 
-## Optional Ollama
+For Docker, Ollama normally runs on the host and is reached through `host.docker.internal`.
 
-Set `OLLAMA_BASE_URL` and `OLLAMA_MODEL` in `.env`. Browser tools remain usable when Ollama is unavailable.
+## Agent workflow
 
-## MCP endpoint
+Example:
 
-The MCP server is exposed at `/mcp` using Streamable HTTP.
+```
+User goal
+   ↓
+Observe DOM + screenshot
+   ↓
+Ollama chooses one action
+   ↓
+Backend validates action
+   ↓
+Playwright executes it
+   ↓
+Observe new state
+   ↓
+Repeat
+```
 
-## Safety model
+The model is an untrusted planner. The backend is always the execution authority.
 
-Navigation and inspection can execute directly. Final order placement or payment submission is intentionally not exposed as an unrestricted MCP tool. The system can prepare a checkout workflow for human review.
+## Safety
+
+The agent can navigate, inspect pages, click controls, and fill ordinary fields. Sensitive irreversible actions are stopped at the safety boundary and require explicit human handling.
+
+The system does not provide unrestricted automation for transactions, security bypasses, credential theft, or verification challenges.
+
+## Storage target
+
+The repository does not contain models, browser binaries, virtual environments, datasets, or caches. The selected Ollama model is about 3.3 GB according to the current Ollama model listing, while project/runtime dependencies are kept lightweight. Exact total disk usage depends on the operating system, Python environment, browser cache, and Ollama storage.
 
 ## Project structure
 
-```text
+```
 frontend/                 Static UI
 backend/main.py           FastAPI application
 backend/mcp_server.py     MCP tool server
-backend/services/         Browser + Ollama + agent services
-backend/utils/            Safety + audit utilities
+backend/services/         Browser + Ollama + agent
+backend/utils/            Safety + audit
 tests/                    Automated tests
-docs/                     Architecture and safety notes
+docs/                     Architecture and safety
 Dockerfile                Container image
 compose.yaml              Docker Compose
 requirements.txt          Python dependencies
@@ -94,8 +140,4 @@ requirements.txt          Python dependencies
 
 ## Academic scope
 
-This project demonstrates MCP protocol integration, tool calling, browser automation, local LLM integration, API design, containerization, safety engineering, testing, and auditability for a B.Tech final-year project.
-
-## Agent workflow
-
-Ollama proposes a strict JSON plan. The backend validates the plan against an allowlisted action set before executing it. The LLM is therefore treated as an untrusted planner; the backend remains the execution authority.
+This project demonstrates MCP protocol integration, multimodal local-LLM reasoning, browser automation, agent loops, API design, safety engineering, containerization, testing, and auditability for a B.Tech final-year project.
