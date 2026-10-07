@@ -12,13 +12,13 @@
       <div>
         <p class="eyebrow">B.TECH FINAL-YEAR PROJECT</p>
         <h1>MCP WebPilot</h1>
-        <p class="sub">Safe AI-controlled browser automation with Model Context Protocol.</p>
+        <p class="sub">A local browser operator built around MCP, Playwright and multimodal Ollama. Observe a page, choose a safe action, verify the result.</p>
       </div>
       <span id="health" class="pill">Checking…</span>
     </header>
     <section class="grid">
       <article class="card controls">
-        <h2>Browser Control</h2>
+        <p class="eyebrow">01 / DIRECT CONTROL</p><h2>Browser Control</h2>
         <label>Open URL</label>
         <div class="row"><input id="url" value="https://www.google.com"><button id="open">Open</button></div>
         <label>Selector</label>
@@ -29,25 +29,25 @@
         <p class="warning">Sensitive final actions remain behind the safety boundary.</p>
       </article>
       <article class="card">
-        <div class="title-row"><h2>Current Page</h2><button id="refresh" class="secondary">Refresh</button></div>
+        <div class="title-row"><p class="eyebrow">02 / OBSERVATION</p><h2>Current Page</h2><button id="refresh" class="secondary">Refresh</button></div>
         <div id="page-meta" class="meta">No page loaded.</div>
         <img id="screenshot" alt="Current browser screenshot" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;margin:12px 0;display:none">
         <pre id="snapshot">Ready.</pre>
       </article>
       <article class="card chat">
-        <h2>AI Browser Agent</h2>
+        <p class="eyebrow">03 / AUTONOMOUS LOOP</p><h2>AI Browser Agent</h2>
         <p class="sub">The local multimodal model observes the page, chooses one safe action, executes it, then observes the new state.</p>
         <div class="row"><input id="goal" placeholder="e.g. Open a website and inspect its page"><button id="run-agent">Run agent</button></div>
         <pre id="agent-result">No workflow executed.</pre>
       </article>
       <article class="card chat">
-        <h2>Local AI (Ollama)</h2>
+        <p class="eyebrow">04 / LOCAL MODEL</p><h2>Local AI (Ollama)</h2>
         <textarea id="prompt" rows="4" placeholder="Ask the local model…"></textarea>
         <button id="ask">Ask model</button>
         <pre id="answer">Ollama is optional. Deterministic browser tools remain available.</pre>
       </article>
     </section>
-    <footer>MCP WebPilot • MCP + FastAPI + Playwright + Ollama vision • lightweight by design</footer>
+    <footer><span>MCP WEBPILOT / 2026</span><span>MCP · PLAYWRIGHT · OLLAMA</span></footer>
   </main>
   <script src="/static/app.js"></script>
 </body>
