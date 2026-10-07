@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP WebPilot</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">B.TECH FINAL-YEAR PROJECT</p>
+        <h1>MCP WebPilot</h1>
+        <p class="sub">Safe AI-controlled browser automation with Model Context Protocol.</p>
+      </div>
+      <span id="health" class="pill">Checking…</span>
+    </header>
+    <section class="grid">
+      <article class="card controls">
+        <h2>Browser Control</h2>
+        <label>Open URL</label>
+        <div class="row"><input id="url" value="https://www.google.com"><button id="open">Open</button></div>
+        <label>CSS selector</label>
+        <div class="row"><input id="selector" placeholder="e.g. input[name=q]"><button id="inspect">Snapshot</button></div>
+        <label>Fill value</label>
+        <div class="row"><input id="value" placeholder="Text to enter"><button id="fill">Fill</button></div>
+        <button id="click" class="secondary">Click selector</button>
+        <p class="warning">Final payment/order submission is intentionally approval-gated and not exposed as an unrestricted tool.</p>
+      </article>
+      <article class="card">
+        <div class="title-row"><h2>Current Page</h2><button id="refresh" class="secondary">Refresh</button></div>
+        <div id="page-meta" class="meta">No page loaded.</div>
+        <pre id="snapshot">Ready.</pre>
+      </article>
+      <article class="card chat">
+        <h2>Agent Workflow</h2>
+        <p class="sub">Ollama proposes a strict JSON plan; the backend validates every step before execution.</p>
+        <div class="row"><input id="goal" placeholder="e.g. Open a website and inspect its page"><button id="run-agent">Run agent</button></div>
+        <pre id="agent-result">No workflow executed.</pre>
+      </article>
+      <article class="card chat">
+        <h2>Local AI (Ollama)</h2>
+        <textarea id="prompt" rows="4" placeholder="Ask the local model to plan a browser workflow…"></textarea>
+        <button id="ask">Ask model</button>
+        <pre id="answer">Ollama is optional. Browser tools work without it.</pre>
+      </article>
+    </section>
+    <footer>MCP WebPilot • MCP + FastAPI + Playwright + optional Ollama • lightweight by design</footer>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
