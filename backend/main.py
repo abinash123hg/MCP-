@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 import base64
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
+
 from backend.mcp_server import browser, mcp, shutdown_browser
 from backend.config import get_settings
 from backend.services.ollama import chat as ollama_chat
@@ -13,6 +15,7 @@ from backend.utils.audit import record
 
 mcp_app = mcp.streamable_http_app(streamable_http_path="/")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path("data").mkdir(exist_ok=True)
@@ -20,28 +23,36 @@ async def lifespan(app: FastAPI):
         yield
     await shutdown_browser()
 
-app = FastAPI(title="MCP WebPilot", version="2.0.0", lifespan=lifespan)
+
+app = FastAPI(title="MCP WebPilot", version="2.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 
 class OpenRequest(BaseModel):
     url: HttpUrl
 
+
 class SelectorRequest(BaseModel):
-    selector: str
+    selector: str = Field(min_length=1)
+
 
 class FillRequest(BaseModel):
-    selector: str
+    selector: str = Field(min_length=1)
     value: str
 
+
 class ChatRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(min_length=1)
+
 
 class AgentRequest(BaseModel):
-    goal: str
+    goal: str = Field(min_length=1)
+
 
 @app.get("/", include_in_schema=False)
 async def index():
     return FileResponse("frontend/index.html")
+
 
 @app.get("/api/health")
 async def health():
@@ -49,10 +60,12 @@ async def health():
     return {
         "status": "ok",
         "service": "mcp-webpilot",
+        "version": "2.1.0",
         "mcp_endpoint": "/mcp",
         "model": settings.ollama_model,
         "vision_model": settings.vision_model,
     }
+
 
 @app.get("/api/status")
 async def status():
@@ -63,6 +76,7 @@ async def status():
         "mcp_endpoint": "/mcp",
     }
 
+
 @app.post("/api/open")
 async def open_page(request: OpenRequest):
     try:
@@ -70,17 +84,24 @@ async def open_page(request: OpenRequest):
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
 @app.get("/api/snapshot")
 async def snapshot():
     return await browser.snapshot()
+
 
 @app.get("/api/screenshot")
 async def screenshot():
     try:
         data = base64.b64decode(await browser.screenshot_base64())
-        return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+        return Response(
+            content=data,
+            media_type="image/jpeg",
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
 @app.post("/api/click")
 async def click(request: SelectorRequest):
@@ -89,6 +110,7 @@ async def click(request: SelectorRequest):
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
 @app.post("/api/fill")
 async def fill(request: FillRequest):
     try:
@@ -96,18 +118,23 @@ async def fill(request: FillRequest):
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
 @app.post("/api/agent")
 async def agent(request: AgentRequest):
-    if not request.goal.strip():
+    goal = request.goal.strip()
+    if not goal:
         raise HTTPException(status_code=400, detail="Goal cannot be empty")
-    return await plan_and_execute(request.goal, browser)
+    return await plan_and_execute(goal, browser)
+
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
-    if not request.prompt.strip():
+async def chat_endpoint(request: ChatRequest):
+    prompt = request.prompt.strip()
+    if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-    result = await ollama_chat(request.prompt)
-    record("chat", {"prompt_length": len(request.prompt)})
+    result = await ollama_chat(prompt)
+    record("chat", {"prompt_length": len(prompt)})
     return {"response": result}
+
 
 app.mount("/mcp", mcp_app)
